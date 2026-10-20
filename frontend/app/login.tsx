@@ -35,12 +35,12 @@ export default function LoginScreen() {
         <View style={styles.shell}>
           <View style={styles.brandRow}>
             <View style={styles.mark}><Ionicons name="people" size={23} color="#F7F8F2" /></View>
-            <Text style={styles.brand}>FIELDNOTE <Text style={styles.brandAccent}>/ PEOPLE</Text></Text>
+            <Text style={styles.brand}>TAPANAPONG <Text style={styles.brandAccent}>/ HR</Text></Text>
           </View>
           <View style={styles.intro}>
-            <Text style={styles.kicker}>PEOPLE OPERATIONS · 2026</Text>
-            <Text style={styles.title}>A clearer view{ '\n' }of your people.</Text>
-            <Text style={styles.description}>Manage your team and understand the shape of compensation, all in one place.</Text>
+            <Text style={styles.kicker}>HR MANAGEMENT · 2026</Text>
+            <Text style={styles.title}>People first.{ '\n' }Insightful pay.</Text>
+            <Text style={styles.description}>Manage employee records and explore salary patterns in one workspace.</Text>
           </View>
           <View style={styles.form}>
             <Text style={styles.formTitle}>Welcome back</Text>
@@ -52,7 +52,7 @@ export default function LoginScreen() {
             <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={submit} disabled={loading} activeOpacity={0.85}>
               {loading ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.buttonText}>Sign in</Text><Ionicons name="arrow-forward" size={18} color="#FFFFFF" /></>}
             </TouchableOpacity>
-            <View style={styles.note}><Ionicons name="shield-checkmark-outline" size={15} color="#177A68" /><Text style={styles.noteText}>Authorized access for HR administrators</Text></View>
+            <View style={styles.note}><Ionicons name="shield-checkmark-outline" size={15} color="#1769AA" /><Text style={styles.noteText}>Authorized access for HR administrators</Text></View>
           </View>
           <Text style={styles.footer}>HR MANAGER & SALARY ANALYTICS SYSTEM</Text>
         </View>
@@ -62,26 +62,26 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F3F5F2' },
+  root: { flex: 1, backgroundColor: '#F3F7FC' },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 34 },
   shell: { width: '100%', maxWidth: 1040, alignSelf: 'center' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  mark: { width: 38, height: 38, borderRadius: 11, backgroundColor: '#177A68', alignItems: 'center', justifyContent: 'center' },
-  brand: { color: '#1F302B', fontSize: 13, fontWeight: '900', letterSpacing: 1 },
-  brandAccent: { color: '#78847E', fontWeight: '600' },
+  mark: { width: 38, height: 38, borderRadius: 11, backgroundColor: '#1769AA', alignItems: 'center', justifyContent: 'center' },
+  brand: { color: '#172B45', fontSize: 13, fontWeight: '900', letterSpacing: 1 },
+  brandAccent: { color: '#718096', fontWeight: '600' },
   intro: { marginTop: 60, maxWidth: 610 },
-  kicker: { color: '#177A68', fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
-  title: { color: '#1C2D27', fontSize: 43, lineHeight: 49, fontWeight: '800', marginTop: 15 },
-  description: { color: '#65716B', fontSize: 15, lineHeight: 23, maxWidth: 430, marginTop: 14 },
-  form: { width: '100%', maxWidth: 450, marginTop: 35, backgroundColor: '#FFFFFF', borderRadius: 8, padding: 25, borderWidth: 1, borderColor: '#E2E7E1' },
-  formTitle: { color: '#24352E', fontSize: 22, fontWeight: '800' },
-  formCaption: { color: '#77827C', fontSize: 13, marginTop: 5, marginBottom: 23 },
-  label: { color: '#52605A', fontSize: 10, fontWeight: '800', letterSpacing: 1, marginTop: 13, marginBottom: 8 },
-  input: { height: 48, borderWidth: 1, borderColor: '#DCE3DC', borderRadius: 5, paddingHorizontal: 13, color: '#23332D', backgroundColor: '#FBFCFA', fontSize: 14 },
-  button: { marginTop: 22, height: 48, borderRadius: 5, backgroundColor: '#177A68', flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center' },
+  kicker: { color: '#1769AA', fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+  title: { color: '#172B45', fontSize: 43, lineHeight: 49, fontWeight: '800', marginTop: 15 },
+  description: { color: '#5D6B7D', fontSize: 15, lineHeight: 23, maxWidth: 430, marginTop: 14 },
+  form: { width: '100%', maxWidth: 450, marginTop: 35, backgroundColor: '#FFFFFF', borderRadius: 8, padding: 25, borderWidth: 1, borderColor: '#DCE5F0' },
+  formTitle: { color: '#21334D', fontSize: 22, fontWeight: '800' },
+  formCaption: { color: '#718096', fontSize: 13, marginTop: 5, marginBottom: 23 },
+  label: { color: '#52647A', fontSize: 10, fontWeight: '800', letterSpacing: 1, marginTop: 13, marginBottom: 8 },
+  input: { height: 48, borderWidth: 1, borderColor: '#D7E2EF', borderRadius: 5, paddingHorizontal: 13, color: '#21334D', backgroundColor: '#F8FBFF', fontSize: 14 },
+  button: { marginTop: 22, height: 48, borderRadius: 5, backgroundColor: '#1769AA', flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center' },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   note: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 18 },
-  noteText: { color: '#748078', fontSize: 11 },
-  footer: { color: '#8A948E', fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginTop: 35 },
+  noteText: { color: '#718096', fontSize: 11 },
+  footer: { color: '#8492A6', fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginTop: 35 },
 });
