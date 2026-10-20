@@ -14,6 +14,8 @@ export type SalaryCluster = {
   count: number;
 };
 
+export type AuthUser = { id: number; username: string; role: 'admin' | 'user' };
+
 type ApiResult<T> = { success: boolean; message?: string } & T;
 
 async function request<T>(path: string, token?: string, init: RequestInit = {}): Promise<ApiResult<T>> {
@@ -37,9 +39,9 @@ async function request<T>(path: string, token?: string, init: RequestInit = {}):
 }
 
 export const api = {
-  login: (username: string, password: string) => request<{ token: string }>('/login', undefined, {
+  login: (identifier: string, password: string) => request<{ token: string; user: AuthUser }>('/auth/login', undefined, {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ identifier, password }),
   }),
   employees: (token: string, search = '') => request<{ employees: Employee[] }>(`/employees?q=${encodeURIComponent(search)}`, token),
   addEmployee: (token: string, employee: { name: string; position: string; status: Employee['status']; salary: number }) => request<{ employee: Employee }>('/employees', token, {

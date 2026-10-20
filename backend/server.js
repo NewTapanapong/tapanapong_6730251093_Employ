@@ -27,8 +27,11 @@ async function verifyPassword(password, encodedHash) {
   return safeEqual(derived.toString('hex'), parts[3].toLowerCase());
 }
 
-function signToken(username, secret, expiresInSeconds = 8 * 60 * 60) {
-  const payload = Buffer.from(JSON.stringify({ sub: username, exp: Math.floor(Date.now() / 1000) + expiresInSeconds })).toString('base64url');
+function signToken(user, secret, expiresInSeconds = 8 * 60 * 60) {
+  const claims = typeof user === 'string'
+    ? { id: 0, username: user, role: 'admin' }
+    : { id: user.id, username: user.username, role: user.role };
+  const payload = Buffer.from(JSON.stringify({ ...claims, sub: claims.username, exp: Math.floor(Date.now() / 1000) + expiresInSeconds })).toString('base64url');
   const signature = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${signature}`;
 }
@@ -41,9 +44,15 @@ function validToken(token, secret) {
   if (!safeEqual(signature, expected)) return false;
   try {
     const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    return typeof claims.sub === 'string' && Number.isInteger(claims.exp) && claims.exp > Math.floor(Date.now() / 1000);
+    return typeof claims.sub === 'string'
+      && typeof claims.username === 'string'
+      && ['admin', 'user'].includes(claims.role)
+      && Number.isInteger(claims.exp)
+      && claims.exp > Math.floor(Date.now() / 1000)
+      ? claims
+      : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -155,16 +164,51 @@ function createApp({ database = pool, auth = {} } = {}) {
     return res.status(200).json({ success: true, token: signToken(authConfig.username, authConfig.secret) });
   });
 
+  app.post('/api/auth/login', async (req, res, next) => {
+    const { identifier, password } = req.body ?? {};
+    if (typeof identifier !== 'string' || typeof password !== 'string' || !identifier.trim() || !password) {
+      return res.status(400).json({ success: false, message: 'Username/email and password are required.' });
+    }
+    if (!authConfig.secret) return res.status(503).json({ success: false, message: 'Login is currently unavailable.' });
+
+    try {
+      const [rows] = await database.execute(
+        'SELECT id, username, email, passwordHash, password, role FROM users WHERE username = ? OR email = ? LIMIT 1',
+        [identifier.trim(), identifier.trim()],
+      );
+      const user = rows[0];
+      const storedHash = user?.passwordHash || user?.password;
+      if (!user || !['admin', 'user'].includes(user.role) || typeof storedHash !== 'string' || !await verifyPassword(password, storedHash)) {
+        return res.status(401).json({ success: false, message: 'Username/email or password is incorrect.' });
+      }
+      const identity = { id: user.id, username: user.username, role: user.role };
+      return res.json({ success: true, token: signToken(identity, authConfig.secret), user: identity });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
   function requireToken(req, res, next) {
     const authorization = req.get('authorization') || '';
     const match = /^Bearer\s+(.+)$/i.exec(authorization);
-    if (!match || !authConfig.secret || !validToken(match[1], authConfig.secret)) {
+    const claims = match && authConfig.secret ? validToken(match[1], authConfig.secret) : null;
+    if (!claims) {
       return res.status(401).json({ success: false, message: 'A valid Bearer token is required.' });
     }
+    req.user = { id: claims.id, username: claims.username, role: claims.role };
     return next();
   }
 
-  app.get('/api/employees', requireToken, async (req, res, next) => {
+  function requireRole(...roles) {
+    return (req, res, next) => {
+      if (!req.user || !roles.includes(req.user.role)) {
+        return res.status(403).json({ success: false, message: 'You do not have permission to perform this action.' });
+      }
+      return next();
+    };
+  }
+
+  app.get('/api/employees', requireToken, requireRole('admin', 'user'), async (req, res, next) => {
     try {
       const rawSearch = typeof req.query.q === 'string' ? req.query.q : req.query.search;
       const search = typeof rawSearch === 'string' ? rawSearch.trim() : '';
@@ -183,7 +227,7 @@ function createApp({ database = pool, auth = {} } = {}) {
     }
   });
 
-  app.post('/api/employees', requireToken, async (req, res, next) => {
+  app.post('/api/employees', requireToken, requireRole('admin'), async (req, res, next) => {
     const validated = validateEmployee(req.body);
     if (validated.error) return res.status(400).json({ success: false, message: validated.error });
     const { name, position, salary, status = 'Active' } = validated.employee;
@@ -200,7 +244,7 @@ function createApp({ database = pool, auth = {} } = {}) {
     }
   });
 
-  app.put('/api/employees/:id', requireToken, async (req, res, next) => {
+  app.put('/api/employees/:id', requireToken, requireRole('admin'), async (req, res, next) => {
     if (!validId(req.params.id)) return res.status(400).json({ success: false, message: 'Employee ID must be a positive integer.' });
     const validated = validateEmployee(req.body);
     if (validated.error) return res.status(400).json({ success: false, message: validated.error });
@@ -219,7 +263,7 @@ function createApp({ database = pool, auth = {} } = {}) {
     }
   });
 
-  app.put('/api/employees/:id/status', requireToken, async (req, res, next) => {
+  app.put('/api/employees/:id/status', requireToken, requireRole('admin'), async (req, res, next) => {
     if (!validId(req.params.id)) return res.status(400).json({ success: false, message: 'Employee ID must be a positive integer.' });
     const status = req.body?.status;
     if (status !== undefined && !['Active', 'On Leave'].includes(status)) {
@@ -236,7 +280,7 @@ function createApp({ database = pool, auth = {} } = {}) {
     }
   });
 
-  app.delete('/api/employees/:id', requireToken, async (req, res, next) => {
+  app.delete('/api/employees/:id', requireToken, requireRole('admin'), async (req, res, next) => {
     if (!validId(req.params.id)) return res.status(400).json({ success: false, message: 'Employee ID must be a positive integer.' });
     try {
       const [rows] = await database.execute(`SELECT ${EMPLOYEE_COLUMNS} FROM Employees WHERE tapanapong_Id_employ = ?`, [Number(req.params.id)]);
@@ -248,7 +292,7 @@ function createApp({ database = pool, auth = {} } = {}) {
     }
   });
 
-  app.get('/api/employees/salary-clusters', requireToken, async (_req, res, next) => {
+  app.get('/api/employees/salary-clusters', requireToken, requireRole('admin', 'user'), async (_req, res, next) => {
     try {
       const [rows] = await database.execute('SELECT tapanapong_Salary_employ AS salary FROM Employees');
       const clusters = calculateSalaryClusters(rows);

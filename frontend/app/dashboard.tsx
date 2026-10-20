@@ -24,7 +24,8 @@ function showMessage(title: string, message: string) {
 }
 
 export default function DashboardScreen() {
-  const { token, ready, logout } = useAuth();
+  const { token, user, ready, logout } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [clusters, setClusters] = useState<SalaryCluster[] | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -186,7 +187,7 @@ export default function DashboardScreen() {
           <Text style={styles.salaryText}>{money(item.salary)}</Text>
         </View>
       </View>
-      <View style={styles.rowActions}>
+      {isAdmin ? <View style={styles.rowActions}>
         <TouchableOpacity accessibilityLabel={`Edit ${item.name}`} style={styles.iconButton} onPress={() => openEdit(item)}>
           <Ionicons name="create-outline" size={19} color="#52647A" />
         </TouchableOpacity>
@@ -196,7 +197,7 @@ export default function DashboardScreen() {
         <TouchableOpacity accessibilityLabel={`Delete ${item.name}`} style={styles.iconButton} onPress={() => confirmDelete(() => void deleteEmployee(item.id))} disabled={workingId === item.id}>
           <Ionicons name="trash-outline" size={18} color="#AF5147" />
         </TouchableOpacity>
-      </View>
+      </View> : null}
     </View>
   );
 
@@ -218,7 +219,7 @@ export default function DashboardScreen() {
             <View style={styles.heading}>
               <Text style={styles.eyebrow}>PEOPLE OPERATIONS · 2026</Text>
               <Text style={styles.title}>Team overview</Text>
-              <Text style={styles.subtitle}>A practical snapshot of your people and compensation.</Text>
+              <Text style={styles.subtitle}>{isAdmin ? 'Administrator dashboard' : 'Read-only user dashboard'} for your people and compensation.</Text>
             </View>
             {error ? <View style={styles.errorBox}><Ionicons name="alert-circle-outline" size={19} color="#A23D35" /><Text style={styles.errorText}>{error}</Text>{employeesError ? <TouchableOpacity accessibilityLabel="Retry loading employees" onPress={() => void loadEmployees(true)}><Ionicons name="refresh-outline" size={20} color="#8D3932" /></TouchableOpacity> : null}</View> : null}
             <View style={styles.statsRow}>
@@ -239,7 +240,7 @@ export default function DashboardScreen() {
             )) : null}
             <View style={styles.sectionHeading}><View><Text style={styles.sectionTitle}>Employees</Text><Text style={styles.sectionCaption}>{initialLoading ? 'Loading team...' : employeesError ? 'List unavailable' : `${employees.length} people in your workspace`}</Text></View></View>
             <View style={styles.searchBox}><Ionicons name="search-outline" size={18} color="#718096" /><TextInput style={styles.searchInput} value={search} onChangeText={(value) => { setSearch(value); setSearchLoading(true); }} placeholder="Search ID, name, position, or status" placeholderTextColor="#8792A3" returnKeyType="search" />{searchLoading ? <ActivityIndicator size="small" color="#1769AA" /> : null}</View>
-            <View style={styles.addForm}>
+            {isAdmin ? <View style={styles.addForm}>
               <View style={styles.formHead}><Ionicons name="person-add-outline" size={18} color="#1769AA" /><Text style={styles.formTitle}>Add an employee</Text></View>
               <View style={styles.formGrid}>
                 <TextInput style={[styles.field, styles.fieldWide]} value={name} onChangeText={setName} placeholder="Full name" placeholderTextColor="#87918B" />
@@ -250,14 +251,14 @@ export default function DashboardScreen() {
                   {adding ? <ActivityIndicator color="#FFFFFF" size="small" /> : <><Ionicons name="add" size={19} color="#FFFFFF" /><Text style={styles.addButtonText}>Add employee</Text></>}
                 </TouchableOpacity>
               </View>
-            </View>
+            </View> : null}
             {initialLoading ? <View style={styles.loading}><ActivityIndicator color="#1769AA" /><Text style={styles.loadingText}>Loading your team...</Text></View> : null}
           </>
         )}
         ListEmptyComponent={!initialLoading && !employeesError ? <View style={styles.empty}><Ionicons name="people-outline" size={25} color="#77837C" /><Text style={styles.emptyTitle}>{search ? 'No matching employees' : 'No employees yet'}</Text><Text style={styles.emptyCopy}>{search ? 'Try another ID, name, position, or status.' : 'Add a team member to get started.'}</Text></View> : null}
         ListFooterComponent={<Text style={styles.footer}>EMPLOYEE RECORDS FROM YOUR CONFIGURED MYSQL DATABASE</Text>}
       />
-      <Modal visible={Boolean(editing)} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
+      <Modal visible={Boolean(editing && isAdmin)} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
         <View style={styles.modalBackdrop}><View style={styles.modalPanel}>
           <View style={styles.modalHeader}><Text style={styles.modalTitle}>Edit employee</Text><TouchableOpacity accessibilityLabel="Close edit form" onPress={() => setEditing(null)}><Ionicons name="close" size={22} color="#52645B" /></TouchableOpacity></View>
           <TextInput style={styles.modalField} value={editName} onChangeText={setEditName} placeholder="Full name" placeholderTextColor="#87918B" />

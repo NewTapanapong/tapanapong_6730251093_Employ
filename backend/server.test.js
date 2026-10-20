@@ -9,6 +9,7 @@ const auth = { username: 'test-admin', secret: 'test-signing-secret' };
 let server;
 let baseUrl;
 let records;
+let users;
 let nextId;
 let requests;
 
@@ -17,6 +18,11 @@ function testDatabase() {
     async execute(sql, params = []) {
       requests.push({ sql, params });
       if (sql === 'SELECT 1') return [[{ 1: 1 }], []];
+      if (sql.startsWith('SELECT id, username, email, passwordHash, password, role FROM users')) {
+        const [identifier, email] = params;
+        const user = users.find((row) => row.username === identifier || row.email === email);
+        return [user ? [{ ...user }] : [], []];
+      }
       if (sql.startsWith('SELECT tapanapong_Salary_employ AS salary')) {
         return [records.map((row) => ({ salary: row.salary })), []];
       }
@@ -76,11 +82,16 @@ before(async () => {
     { id: 2, name: 'Bee Example', position: 'Engineer', status: 'On Leave', salary: 45000 },
     { id: 3, name: 'Cee Example', position: 'Manager', status: 'Active', salary: 80000 },
   ];
-  nextId = 4;
-  requests = [];
   const password = 'correct horse battery staple';
   const salt = crypto.randomBytes(16);
   const hash = await scrypt(password, salt, 64);
+  const passwordHash = `$scrypt$${salt.toString('hex')}$${hash.toString('hex')}`;
+  users = [
+    { id: 10, username: 'test-admin', email: 'admin@example.com', passwordHash, password: null, role: 'admin' },
+    { id: 11, username: 'test-user', email: 'user@example.com', passwordHash, password: null, role: 'user' },
+  ];
+  nextId = 4;
+  requests = [];
   const app = createApp({
     database: testDatabase(),
     auth: { ...auth, passwordHash: `$scrypt$${salt.toString('hex')}$${hash.toString('hex')}` },
@@ -134,4 +145,19 @@ test('K-Means returns ordered tiers and handles small, repeated, and empty input
   const analytics = await request('/api/employees/salary-clusters', { auth: auth.token });
   assert.equal(analytics.response.status, 200);
   assert.match(analytics.body.message, /unsupervised machine learning/);
+});
+
+test('auth login accepts username or email and enforces role permissions', async () => {
+  const byUsername = await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier: 'test-admin', password: 'correct horse battery staple' }) });
+  assert.equal(byUsername.response.status, 200);
+  assert.deepEqual(byUsername.body.user, { id: 10, username: 'test-admin', role: 'admin' });
+  assert.deepEqual(requests.filter((entry) => entry.sql.includes('FROM users')).at(-1).params, ['test-admin', 'test-admin']);
+
+  const byEmail = await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier: 'user@example.com', password: 'correct horse battery staple' }) });
+  assert.equal(byEmail.response.status, 200);
+  assert.equal(byEmail.body.user.role, 'user');
+  assert.equal((await request('/api/employees', { auth: byEmail.body.token })).response.status, 200);
+  assert.equal((await request('/api/employees', { method: 'POST', auth: byEmail.body.token, body: JSON.stringify({ name: 'Denied', position: 'User', salary: 1000 }) })).response.status, 403);
+  assert.equal((await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier: 'test-user', password: 'wrong' }) })).response.status, 401);
+  assert.equal((await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier: '', password: '' }) })).response.status, 400);
 });
