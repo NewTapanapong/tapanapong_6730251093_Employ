@@ -27,6 +27,18 @@ async function verifyPassword(password, encodedHash) {
   return safeEqual(derived.toString('hex'), parts[3].toLowerCase());
 }
 
+async function verifyUserPassword(password, user) {
+  for (const stored of [user.passwordHash, user.password]) {
+    if (typeof stored !== 'string' || !stored) continue;
+    if (stored.startsWith('$')) {
+      if (await verifyPassword(password, stored)) return true;
+      continue;
+    }
+    if (safeEqual(password, stored)) return true;
+  }
+  return false;
+}
+
 function signToken(user, secret, expiresInSeconds = 8 * 60 * 60) {
   const claims = typeof user === 'string'
     ? { id: 0, username: user, role: 'admin' }
@@ -177,8 +189,7 @@ function createApp({ database = pool, auth = {} } = {}) {
         [identifier.trim(), identifier.trim()],
       );
       const user = rows[0];
-      const storedHash = user?.passwordHash || user?.password;
-      if (!user || !['admin', 'user'].includes(user.role) || typeof storedHash !== 'string' || !await verifyPassword(password, storedHash)) {
+      if (!user || !['admin', 'user'].includes(user.role) || !await verifyUserPassword(password, user)) {
         return res.status(401).json({ success: false, message: 'Username/email or password is incorrect.' });
       }
       const identity = { id: user.id, username: user.username, role: user.role };

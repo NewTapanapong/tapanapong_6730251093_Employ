@@ -89,6 +89,7 @@ before(async () => {
   users = [
     { id: 10, username: 'test-admin', email: 'admin@example.com', passwordHash, password: null, role: 'admin' },
     { id: 11, username: 'test-user', email: 'user@example.com', passwordHash, password: null, role: 'user' },
+    { id: 12, username: 'legacy-user', email: 'legacy@example.com', passwordHash: 'legacy-pass-123', password: 'legacy-pass-123', role: 'user' },
   ];
   nextId = 4;
   requests = [];
@@ -159,5 +160,8 @@ test('auth login accepts username or email and enforces role permissions', async
   assert.equal((await request('/api/employees', { auth: byEmail.body.token })).response.status, 200);
   assert.equal((await request('/api/employees', { method: 'POST', auth: byEmail.body.token, body: JSON.stringify({ name: 'Denied', position: 'User', salary: 1000 }) })).response.status, 403);
   assert.equal((await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier: 'test-user', password: 'wrong' }) })).response.status, 401);
+  const legacy = await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier: 'legacy@example.com', password: 'legacy-pass-123' }) });
+  assert.equal(legacy.response.status, 200);
+  assert.equal(legacy.body.user.username, 'legacy-user');
   assert.equal((await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier: '', password: '' }) })).response.status, 400);
 });
