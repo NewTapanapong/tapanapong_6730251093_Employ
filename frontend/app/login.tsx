@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../src/auth';
@@ -10,18 +10,18 @@ function notify(message: string) {
 }
 
 export default function LoginScreen() {
-  const { token, ready, login } = useAuth();
+  const { login } = useAuth();
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
-  if (ready && token) return <Redirect href="/dashboard" />;
 
   const submit = async () => {
     if (!username.trim() || !password) return notify('Enter both username and password.');
     setLoading(true);
     try {
       await login(username.trim(), password);
+      router.replace('/dashboard');
     } catch (error) {
       notify(error instanceof Error ? error.message : 'Unable to sign in.');
     } finally {
@@ -34,7 +34,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.shell}>
           <View style={styles.brandRow}>
-            <View style={styles.mark}><Ionicons name="people" size={23} color="#F7F8F2" /></View>
+            <View style={styles.mark}><Ionicons name="people" size={23} color="#FFFFFF" /></View>
             <Text style={styles.brand}>TAPANAPONG <Text style={styles.brandAccent}>/ HR</Text></Text>
           </View>
           <View style={styles.intro}>
