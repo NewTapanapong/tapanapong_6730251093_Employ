@@ -1,0 +1,19 @@
+{
+  "name": "hr-salary-analytics-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MySQL-backed HR Manager and Salary Analytics API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test",
+    "hash-password": "node hash-password.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "mysql2": "^3.24.6"
+  }
+}
